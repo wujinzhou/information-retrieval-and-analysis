@@ -7,6 +7,7 @@ from nltk.corpus import stopwords
 from time import time
 import json
 import re
+#from memory_profiler import profile
 
 base_dir = dirname(realpath(__file__))
 data_dir = base_dir + '/HillaryEmails'
@@ -138,24 +139,30 @@ class BlockMerger:
         if outstr:
             write_file(outstr, 'index.txt', 'a')
 
+@profile
+def split_blocks():
+    max_id = 0
+    for i in range(1, n_documents+1, max_blk_file):
+        max_id += 1
+        lst = list(range(i, min(i+max_blk_file, n_documents+1)))
+        block = Block(lst, max_id)
+        block.save_index()
+    return max_id
+
+@profile
+def merge_blocks(max_id):
+    bm = BlockMerger(list(range(1, max_id + 1)))
+    bm.save_index()
 
 if __name__ == '__main__':
-    block_id = 0
-    time_split_block = 0
-    time_merge_index = 0
     start = time()
-    for i in range(1, n_documents+1, max_blk_file):
-        block_id += 1
-        lst = list(range(i, min(i+max_blk_file, n_documents+1)))
-        block = Block(lst, block_id)
-        block.save_index()
-        time_split_block = time() - start
+    max_block_id = split_blocks()
+    time_split_block = time() - start
 
-    bm = BlockMerger(list(range(1, block_id + 1)))
-    bm.save_index()
-    time_merge_index = time() - start - time_split_block
+    merge_blocks(max_block_id)
+    time_merge_block = time() - start - time_split_block
 
-    print('summary:\n\tmax_blk_file:\t', max_blk_file, '\n\tnum_of_blocks:\t', block_id,
+    print('summary:\n\tmax_blk_file:\t', max_blk_file, '\n\tnum_of_blocks:\t', max_block_id,
           '\n\ttime_split_block:\t', time_split_block, '\n\tmax_merge_bytes:\t',
-          max_merge_bytes,'\n\ttime_merge_index:\t', time_merge_index)
+          max_merge_bytes,'\n\ttime_merge_index:\t', time_merge_block)
 
