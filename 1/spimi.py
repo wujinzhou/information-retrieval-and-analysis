@@ -121,10 +121,7 @@ class BlockMerger:
 
             print('merge \t[%s] \t[%s]' % (curr_term, len(curr_posting)))
 
-            if outstr:
-                outstr += '\n%s' %json.dumps({curr_term: curr_posting})
-            else:
-                outstr += json.dumps({curr_term: curr_posting})
+            outstr += '%s\n' %json.dumps({curr_term: curr_posting})
 
             for fhid in curr_fhids:
                 self.load_next_term(fhid)
