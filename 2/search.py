@@ -41,9 +41,7 @@ def load_index_compressed(fname):
         for l in lines:
             j = json.loads(l)
             for k, v in j.items():
-                posting = b''
-                for p in v:
-                    posting += b'%s.' %str(p[0]).encode()
+                posting = b'.'.join(('%x' %p[0]).encode() for p in v)
                 term = k.encode()
                 if term[0] != hash_key:
                     hash_key = term[0]
@@ -219,7 +217,7 @@ def get_posting(term, compress=False):
         return []
 
     # retrieve and decompress posting list
-    posting = [int(i) for i in index_compressed[('%x' %k).encode()].split(b'.')]
+    posting = [int(i, 16) for i in index_compressed[('%x' %k).encode()].split(b'.')]
     return posting
 
 def process_query(lst, op, term, compress=False):
