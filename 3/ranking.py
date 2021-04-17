@@ -35,14 +35,14 @@ def load_document_length():
     if isfile(document_len):
         with open(document_len, 'r') as f:
             ret = json.loads(f.read())
-            print('load_document_length [%s] docs' %len(ret))
+            print('load_document_length for [%s] docs' %len(ret))
         return ret
     for i in range(1, N_DOCUMENT + 1):
         with open(get_doc_from_id(i), 'r') as f:
             ret[i] = len(tokenize(f.read()))
     with open(document_len, 'w') as f:
         f.write(json.dumps(ret))
-    print('load_document_length [%s] docs' %len(ret))
+    print('load_document_length for [%s] docs' %len(ret))
     return ret
 
 def load_posting():
@@ -53,7 +53,7 @@ def load_posting():
             if l:
                 for k, v in json.loads(l).items():
                     posting[k] = v
-    print('load_posting [%s] pairs' %len(posting))
+    print('load_posting for [%s] term-posting pairs' %len(posting))
     return posting
 
 def operation_or(l1, l2):
@@ -163,7 +163,10 @@ def cos_sim(qv, dv):
 
 def search(query, pos, doc):
     terms = pre_process(query)
+
+    tmstart = time()
     print('search %s' %terms)
+
     result = []
     idf = {}
     ranking = {}
@@ -174,14 +177,24 @@ def search(query, pos, doc):
             idf[t] = log10(N_DOCUMENT / len(poslist))
         result = operation_or(result, poslist)
 
+    tmresult = time()
+    print('search retrieve [%s] documents in [%s] sec' %(len(result), tmresult - tmstart))
+
     qvec = query_vector(terms, idf)
     for r in result:
         docid = r[0]
         dvec = document_vector(terms, idf, docid, pos)
         ranking[docid] = cos_sim(qvec, dvec) / log(max(16, doc.get('%s' %docid)), 16)
 
-    print('ranking list length %s' %len(ranking))
-    return sorted(ranking.items(), key=lambda tup: tup[1], reverse=True)[:N_RETURN]
+    tmranking = time()
+    print('search compute ranking score in [%s] sec' %(tmranking - tmresult))
+
+    ret = sorted(ranking.items(), key=lambda tup: tup[1], reverse=True)[:N_RETURN]
+
+    tmsorting = time()
+    print('search sorting results in [%s] sec' %(tmsorting - tmranking))
+    print('search completed in [%s] sec' %(tmsorting - tmstart))
+    return ret
 
 if __name__ == '__main__':
     posting = load_posting()
@@ -189,6 +202,4 @@ if __name__ == '__main__':
 
     text = "Please convey to the Secretary my most profound thanks for her contribution to the 'It Gets Better' video series."
 
-    start = time()
     print(search(text, posting, doclen))   # returns [(6838, 0.5356845360048234), (4054, 0.3555446148043571), (6868, 0.3442583293694912) ....]
-    print('time spent [%s]' %(time() - start))
